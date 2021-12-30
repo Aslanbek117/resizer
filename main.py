@@ -1,5 +1,35 @@
+import os
+
 import image_slicer
 from PIL import Image, ImageFilter
+import urllib
+import wget
+import ssl
+import pandas as pd
+import openpyxl
+from transliterate import translit, get_available_language_codes
+import psycopg2
+from psycopg2 import sql
+
+ssl._create_default_https_context = ssl._create_unverified_context
+
+
+
+def hyphen_split(a):
+    if a.count("-") == 1:
+        return a.split("-")[0]
+    return "-".join(a.split("-", 2)[:2])
+
+def hyphen_split_second(a):
+    if a.count("/") == 1:
+        return a.split("/")[0]
+    return "/".join(a.split("/", 2))
+
+# https://pixabay.com/images/download/kuala-lumpur-1820944.jpg?attachment
+
+#https://pixabay.com/get/gca2b3f48f541307c43cb7d93d3eea1d06adeedaa0f335afc18efe57bbb41b2079dad39ac201668c683a0ea0e6642568f_1920.jpg?attachment=
+def donwloadUrl(fileName, id):
+    return "https://pixabay.com/images/download/"+fileName + "-"+id +".jpg?attachment"
 #
 # img = Image.open('./shadow_0.jpg', 'r').convert("RGB")
 # img_w, img_h = img.size
@@ -271,7 +301,9 @@ def divide2Low(fileIn, fileOut, maxWidth, maxHeight):
     readyName = fileOut + "_complex_low_2.jpg"
     background.save(readyName)
 
-
+def saveOriginal(fileIn, fileOut):
+    im = Image.open(fileIn)
+    im.save(fileOut+"_original.jpg")
 
 def divide3Low(fileIn, fileOut, maxWidth, maxHeight):
     fixedOffset = maxWidth / 3
@@ -306,9 +338,64 @@ def divide3Low(fileIn, fileOut, maxWidth, maxHeight):
     background.save(readyName)
 
 
-img = Image.open("london.jpg")
-w,h = img.size
+# img = Image.open("london.jpg")
+# w,h = img.size
 # divide3("london.jpg", "f0", w, h)
-divide3Low("london.jpg", "f0", w, h)
+# divide3Low("london.jpg", "f0", w, h)
 # divide2("london.jpg", "f0", w, h)
 # divide2Low("london.jpg", "lo", w,h)
+
+
+
+# txt = "https://pixabay.com/photos/kuala-lumpur-petronas-twin-towers-1820944/"
+# st = ""
+# for i in txt:
+#     if i.__str__().isdigit():
+#         st+=i
+#
+# fileName = hyphen_split(txt).split("/")[-1]
+# print(donwloadUrl(fileName, st))
+# test
+
+
+conn = psycopg2.connect(dbname='postgres', user='postgres',
+                        password='1002574', host='localhost')
+
+cursor = conn.cursor()
+wrkbk = openpyxl.load_workbook("bridges.xlsx")
+sh = wrkbk.active
+# iterate through excel and display data
+for i in range(1, sh.max_row + 1):
+    title = ""
+    fileName = ""
+    for j in range(1, sh.max_column + 1):
+        cell_obj = sh.cell(row=i, column=j)
+        # cell_obj.value
+        if (j == 1):
+            title = cell_obj.value
+        else:
+            fileName = cell_obj.value
+    tr = translit(title, "ru", reversed=True)
+    tr = tr.replace(" ", "_")
+    if not os.path.exists(tr):
+        os.mkdir(tr)
+
+    file = "./bridges/" + fileName
+    img = Image.open(file)
+    w,h = img.size
+    divide3(file, "./" + tr +"/" +tr, w, h)
+    divide3Low(file, "./" + tr +"/" +tr, w, h)
+    divide2(file, "./" + tr +"/" +tr, w, h)
+    divide2Low(file, "./" + tr +"/" +tr, w, h)
+    transform(file, "./" + tr +"/" +tr)
+    saveOriginal(file, "./" + tr +"/" +tr)
+    with conn.cursor() as cursor:
+        zaebal = "./" + tr +"/" +tr
+        conn.autocommit = True
+        values = [
+            (file, title, 'Мосты', tr,zaebal +"_0.jpg", zaebal + "_1.jpg", zaebal +"_2.jpg", zaebal +"_0_resize_500_shadow.jpg",zaebal +"_1_resize_500_shadow.jpg", zaebal +"_2_resize_500_shadow.jpg", zaebal +"_complex_2.jpg", zaebal +"_complex_low_2.jpg", zaebal +"_complex_3.jpg", zaebal +"_complex_low_3.jpg", zaebal +"_transform.jpg", zaebal +"_original.jpg")
+        ]
+        insert = sql.SQL('INSERT INTO pictures.catalog (path, title, category, directory_name, resize_0, resize_1, resize_2, resize_0_shadow, resize_1_shadow, resize_2_shadow, complex_2, complex_2_low, complex_3, complex_3_low, transform, original) VALUES {}').format(
+            sql.SQL(',').join(map(sql.Literal, values))
+        )
+        cursor.execute(insert)
