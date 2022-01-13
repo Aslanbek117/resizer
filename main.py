@@ -239,7 +239,7 @@ def divide2(fileIn, fileOut, maxWidth, maxHeight):
             divide(0, fixedOffset, fileIn, fileOut + "_"+i.__str__() + ".jpg", maxHeight)
         elif (i == 1):
             divide(fixedOffset, fixedOffset*2, fileIn, fileOut + "_"+i.__str__() + ".jpg", maxHeight)
-        height, resizeImg = resize(int(maxWidth / 2) - 100, out, resizeName)
+        height, resizeImg = resize(500, out, resizeName)
         dropShadow(shadowName, resizeImg, background=0xeeeeee, shadow=0x444444, offset=(0, 5))
     img = Image.open(baseShadowName + "0_resize_500_shadow.jpg", 'r').convert("RGB")
     img2 = Image.open(baseShadowName + "1_resize_500_shadow.jpg", 'r').convert("RGB")
@@ -366,36 +366,45 @@ wrkbk = openpyxl.load_workbook("bridges.xlsx")
 sh = wrkbk.active
 # iterate through excel and display data
 for i in range(1, sh.max_row + 1):
-    title = ""
-    fileName = ""
-    for j in range(1, sh.max_column + 1):
-        cell_obj = sh.cell(row=i, column=j)
-        # cell_obj.value
-        if (j == 1):
-            title = cell_obj.value
-        else:
-            fileName = cell_obj.value
-    tr = translit(title, "ru", reversed=True)
-    tr = tr.replace(" ", "_")
-    if not os.path.exists(tr):
-        os.mkdir(tr)
+    # title = ""
+    # fileName = ""
+    # for j in range(1, sh.max_column + 1):
+    #     cell_obj = sh.cell(row=i, column=j)
+    #     # cell_obj.value
+    #     if (j == 1):
+    #         title = cell_obj.value
+    #     else:
+    #         fileName = cell_obj.value
+    # tr = translit(title, "ru", reversed=True)
+    # tr = tr.replace(" ", "_")
+    # if not os.path.exists(tr):
+    #     os.mkdir(tr)
+    tr = "chlen"
+    title="chlen"
+    fileName ="chlen.jpg"
+    if tr == "chlen":
+        file = "./bridges/" + fileName
+        img = Image.open(file)
+        w, h = img.size
+        divide3(file, "./" + tr + "/" + tr, w, h)
+        divide3Low(file, "./" + tr + "/" + tr, w, h)
+        divide2(file, "./" + tr + "/" + tr, w, h)
+        divide2Low(file, "./" + tr + "/" + tr, w, h)
+        transform(file, "./" + tr + "/" + tr)
+        saveOriginal(file, "./" + tr + "/" + tr)
+        with conn.cursor() as cursor:
+            zaebal = "./" + tr + "/" + tr
+            conn.autocommit = True
+            values = [
+                (file, title, 'Мосты', tr, zaebal + "_0.jpg", zaebal + "_1.jpg", zaebal + "_2.jpg",
+                 zaebal + "_0_resize_500_shadow.jpg", zaebal + "_1_resize_500_shadow.jpg",
+                 zaebal + "_2_resize_500_shadow.jpg", zaebal + "_complex_2.jpg", zaebal + "_complex_low_2.jpg",
+                 zaebal + "_complex_3.jpg", zaebal + "_complex_low_3.jpg", zaebal + "_transform.jpg",
+                 zaebal + "_original.jpg")
+            ]
+            insert = sql.SQL(
+                'INSERT INTO pictures.catalog (path, title, category, directory_name, resize_0, resize_1, resize_2, resize_0_shadow, resize_1_shadow, resize_2_shadow, complex_2, complex_2_low, complex_3, complex_3_low, transform, original) VALUES {}').format(
+                sql.SQL(',').join(map(sql.Literal, values))
+            )
+            cursor.execute(insert)
 
-    file = "./bridges/" + fileName
-    img = Image.open(file)
-    w,h = img.size
-    divide3(file, "./" + tr +"/" +tr, w, h)
-    divide3Low(file, "./" + tr +"/" +tr, w, h)
-    divide2(file, "./" + tr +"/" +tr, w, h)
-    divide2Low(file, "./" + tr +"/" +tr, w, h)
-    transform(file, "./" + tr +"/" +tr)
-    saveOriginal(file, "./" + tr +"/" +tr)
-    with conn.cursor() as cursor:
-        zaebal = "./" + tr +"/" +tr
-        conn.autocommit = True
-        values = [
-            (file, title, 'Мосты', tr,zaebal +"_0.jpg", zaebal + "_1.jpg", zaebal +"_2.jpg", zaebal +"_0_resize_500_shadow.jpg",zaebal +"_1_resize_500_shadow.jpg", zaebal +"_2_resize_500_shadow.jpg", zaebal +"_complex_2.jpg", zaebal +"_complex_low_2.jpg", zaebal +"_complex_3.jpg", zaebal +"_complex_low_3.jpg", zaebal +"_transform.jpg", zaebal +"_original.jpg")
-        ]
-        insert = sql.SQL('INSERT INTO pictures.catalog (path, title, category, directory_name, resize_0, resize_1, resize_2, resize_0_shadow, resize_1_shadow, resize_2_shadow, complex_2, complex_2_low, complex_3, complex_3_low, transform, original) VALUES {}').format(
-            sql.SQL(',').join(map(sql.Literal, values))
-        )
-        cursor.execute(insert)
