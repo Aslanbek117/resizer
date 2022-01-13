@@ -379,9 +379,9 @@ for i in range(1, sh.max_row + 1):
     # tr = tr.replace(" ", "_")
     # if not os.path.exists(tr):
     #     os.mkdir(tr)
-    tr = "chlen"
-    title="chlen"
-    fileName ="chlen.jpg"
+    tr = "images/"
+    title="images/"
+    fileName ="bridge-53769_1920.jpg"
     if tr == "chlen":
         file = "./bridges/" + fileName
         img = Image.open(file)
